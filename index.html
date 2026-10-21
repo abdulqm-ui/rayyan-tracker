@@ -115,15 +115,13 @@
 
     <!-- Application Logic & Firebase -->
     <script type="module">
-      //  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-     //   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-        // Your specific Firebase config
+        // 🛑 IMPORTANT: Double check that these are YOUR keys from the Firebase console.
+        // If your apiKey is "AIzaSyDuyg..." it is using my fake placeholder keys and will fail to save!
         const firebaseConfig = {
-            apiKey: "AIzaSyDuygTSi_VqKDsMTg4yoe4Tme6KZ_Qbk5c",
+            apiKey: "AIzaSyDuygTSi_VqKDsMTg4yoe4Tme6KZ_Qbk5c", 
             authDomain: "rayyan-tracker.firebaseapp.com",
             projectId: "rayyan-tracker",
             storageBucket: "rayyan-tracker.firebasestorage.app",
@@ -133,7 +131,7 @@
 
         // --- State & Constants ---
         const CORRECT_PIN = '2026';
-        let lastPoopTimestamp = 0; // ms since epoch
+        let lastPoopTimestamp = 0; 
         let timerInterval = null;
 
         // --- UI Elements ---
@@ -157,19 +155,36 @@
         const db = getFirestore(app);
 
         function initApp() {
-            // Listen to a simple, clean document path in your database
-            const docRef = doc(db, 'tracker', 'latest');
-            
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    lastPoopTimestamp = docSnap.data().timestamp;
-                } else {
-                    lastPoopTimestamp = 0; // Never logged
+            let isConnected = false;
+
+            // Failsafe: Force the UI to load if Firebase hangs for more than 3.5 seconds
+            const failsafeTimer = setTimeout(() => {
+                if (!isConnected) {
+                    lastPoopTimestamp = 0;
+                    updateUI();
                 }
+            }, 3500);
+
+            try {
+                const docRef = doc(db, 'tracker', 'latest');
+                
+                onSnapshot(docRef, (docSnap) => {
+                    isConnected = true;
+                    if (docSnap.exists()) {
+                        lastPoopTimestamp = docSnap.data().timestamp;
+                    } else {
+                        lastPoopTimestamp = 0;
+                    }
+                    updateUI();
+                }, (error) => {
+                    isConnected = true;
+                    // Ignore silent permission errors on load, we will catch them on the button press instead
+                    updateUI();
+                });
+            } catch (error) {
+                isConnected = true;
                 updateUI();
-            }, (error) => {
-                console.error("Error listening to Firestore:", error);
-            });
+            }
         }
 
         // --- Display Logic ---
@@ -189,7 +204,6 @@
             const now = new Date();
             const lastPoopDate = new Date(lastPoopTimestamp);
 
-            // Check if same calendar day
             const isToday = now.getFullYear() === lastPoopDate.getFullYear() &&
                             now.getMonth() === lastPoopDate.getMonth() &&
                             now.getDate() === lastPoopDate.getDate();
@@ -198,8 +212,8 @@
                 showYesState();
             } else {
                 showNoState();
-                updateCounter(); // Initial tick
-                timerInterval = setInterval(updateCounter, 60000); // Update every minute
+                updateCounter(); 
+                timerInterval = setInterval(updateCounter, 60000); 
             }
         }
 
@@ -238,24 +252,9 @@
             const end = Date.now() + duration;
 
             (function frame() {
-                confetti({
-                    particleCount: 7,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F']
-                });
-                confetti({
-                    particleCount: 7,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F']
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
+                confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F'] });
+                confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
             }());
         }
 
@@ -267,8 +266,8 @@
                 const docRef = doc(db, 'tracker', 'latest');
                 await setDoc(docRef, { timestamp: Date.now() });
             } catch (error) {
-                console.error("Failed to save to database:", error);
-                alert("Couldn't save to the database. Check your Firebase Rules!");
+                // This alert will tell us EXACTLY what is blocking the connection
+                alert("Database Error: " + error.message);
             }
         }
 
@@ -281,5 +280,51 @@
             
             setTimeout(() => {
                 ui.modal.classList.remove('opacity-0');
-                ui.modalContent.classList.remove('scale-95
- 
+                ui.modalContent.classList.remove('scale-95');
+                ui.pinInput.focus();
+            }, 10);
+        }
+
+        function closeModal() {
+            ui.modal.classList.add('opacity-0');
+            ui.modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                ui.modal.classList.add('hidden');
+                ui.modalContent.classList.remove('animate-shake');
+            }, 200);
+        }
+
+        function handlePinSubmit() {
+            if (ui.pinInput.value === CORRECT_PIN) {
+                closeModal();
+                logPoopEvent();
+            } else {
+                ui.pinError.classList.remove('opacity-0');
+                ui.pinError.classList.add('opacity-100');
+                ui.pinInput.value = '';
+                ui.pinInput.focus();
+                
+                ui.modalContent.classList.remove('animate-shake');
+                void ui.modalContent.offsetWidth;
+                ui.modalContent.classList.add('animate-shake');
+            }
+        }
+
+        // --- Event Listeners ---
+        ui.logBtn.addEventListener('click', openModal);
+        ui.cancelBtn.addEventListener('click', closeModal);
+        ui.submitBtn.addEventListener('click', handlePinSubmit);
+        ui.pinInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handlePinSubmit();
+        });
+
+        ui.modal.addEventListener('click', (e) => {
+            if (e.target === ui.modal) closeModal();
+        });
+
+        // Start App
+        initApp();
+
+    </script>
+</body>
+</html>

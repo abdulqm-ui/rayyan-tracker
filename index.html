@@ -1,13 +1,12 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Did Rayyan Poop Today?</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js](https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js)"></script>
+    <link href="[https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap)" rel="stylesheet">
     <style>
         body {
             font-family: 'Nunito', sans-serif;
@@ -116,27 +115,23 @@
 
     <!-- Application Logic & Firebase -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
+        import { getFirestore, doc, setDoc, onSnapshot } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js)";
 
-        // Environment variables provided by the platform
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rayyan-poop-tracker';
-        let firebaseConfig = {   apiKey: "AIzaSyDuygTSi_VqKDsMTg4yoe4Tme6KZ_Qbk5c",
-  authDomain: "rayyan-tracker.firebaseapp.com",
-  projectId: "rayyan-tracker",
-  storageBucket: "rayyan-tracker.firebasestorage.app",
-  messagingSenderId: "364542152137",
-  appId: "1:364542152137:web:576de3fb0860bd2e102c18" }; // Fallback
-        if (typeof __firebase_config !== 'undefined') {
-            try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
-        }
+        // Your specific Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuygTSi_VqKDsMTg4yoe4Tme6KZ_Qbk5c",
+            authDomain: "rayyan-tracker.firebaseapp.com",
+            projectId: "rayyan-tracker",
+            storageBucket: "rayyan-tracker.firebasestorage.app",
+            messagingSenderId: "364542152137",
+            appId: "1:364542152137:web:576de3fb0860bd2e102c18"
+        };
 
         // --- State & Constants ---
         const CORRECT_PIN = '2026';
         let lastPoopTimestamp = 0; // ms since epoch
         let timerInterval = null;
-        let useLocalFallback = false; // Used if Firebase fails to load/config is invalid
 
         // --- UI Elements ---
         const ui = {
@@ -155,52 +150,23 @@
         };
 
         // --- Firebase Init ---
-        let db, auth;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } catch (error) {
-            console.error("Firebase init failed, falling back to local state.", error);
-            useLocalFallback = true;
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        async function initApp() {
-            if (useLocalFallback) {
-                lastPoopTimestamp = Date.now() - (1000 * 60 * 60 * 25); // Start with a mock "No" state (25 hrs ago)
-                updateUI();
-                return;
-            }
-
-            try {
-                // Authenticate before query (Rule 3)
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+        function initApp() {
+            // Listen to a simple, clean document path in your database
+            const docRef = doc(db, 'tracker', 'latest');
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    lastPoopTimestamp = docSnap.data().timestamp;
                 } else {
-                    await signInAnonymously(auth);
+                    lastPoopTimestamp = 0; // Never logged
                 }
-
-                // Listen to the public document tracking the latest poop (Rule 1)
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'poopTracker', 'latest');
-                
-                onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        lastPoopTimestamp = docSnap.data().timestamp;
-                    } else {
-                        lastPoopTimestamp = 0; // Never logged
-                    }
-                    updateUI();
-                }, (error) => {
-                    console.error("Error listening to Firestore:", error);
-                    useLocalFallback = true;
-                    updateUI();
-                });
-
-            } catch (error) {
-                console.error("Auth/Firestore setup failed:", error);
-                useLocalFallback = true;
                 updateUI();
-            }
+            }, (error) => {
+                console.error("Error listening to Firestore:", error);
+            });
         }
 
         // --- Display Logic ---
@@ -269,15 +235,13 @@
             const end = Date.now() + duration;
 
             (function frame() {
-                // Left edge
                 confetti({
                     particleCount: 7,
                     angle: 60,
                     spread: 55,
                     origin: { x: 0 },
-                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F'] // Brown and Gold tones
+                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F']
                 });
-                // Right edge
                 confetti({
                     particleCount: 7,
                     angle: 120,
@@ -296,20 +260,12 @@
         async function logPoopEvent() {
             firePoopConfetti();
             
-            if (useLocalFallback) {
-                lastPoopTimestamp = Date.now();
-                updateUI();
-                return;
-            }
-
             try {
-                if (!auth.currentUser) return; // Guard clause
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'poopTracker', 'latest');
+                const docRef = doc(db, 'tracker', 'latest');
                 await setDoc(docRef, { timestamp: Date.now() });
-                // Note: The onSnapshot listener will catch this and trigger updateUI automatically
             } catch (error) {
                 console.error("Failed to save to database:", error);
-                alert("Oh no! Couldn't save the poop log. Check your connection.");
+                alert("Couldn't save to the database. Check your Firebase Rules!");
             }
         }
 
@@ -341,15 +297,13 @@
                 closeModal();
                 logPoopEvent();
             } else {
-                // Show Error & Shake
                 ui.pinError.classList.remove('opacity-0');
                 ui.pinError.classList.add('opacity-100');
                 ui.pinInput.value = '';
                 ui.pinInput.focus();
                 
-                // Retrigger animation
                 ui.modalContent.classList.remove('animate-shake');
-                void ui.modalContent.offsetWidth; // Trigger reflow
+                void ui.modalContent.offsetWidth;
                 ui.modalContent.classList.add('animate-shake');
             }
         }
@@ -362,7 +316,6 @@
             if (e.key === 'Enter') handlePinSubmit();
         });
 
-        // Close modal on clicking outside
         ui.modal.addEventListener('click', (e) => {
             if (e.target === ui.modal) closeModal();
         });
@@ -373,4 +326,4 @@
     </script>
 </body>
 </html>
-```
+ 

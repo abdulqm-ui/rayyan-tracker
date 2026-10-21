@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Did Rayyan Poop Today?</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js](https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js)"></script>
-    <link href="[https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap)" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Nunito', sans-serif;
@@ -115,8 +115,8 @@
 
     <!-- Application Logic & Firebase -->
     <script type="module">
-        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
-        import { getFirestore, doc, setDoc, onSnapshot } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js)";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your specific Firebase config
         const firebaseConfig = {
@@ -278,52 +278,5 @@
             
             setTimeout(() => {
                 ui.modal.classList.remove('opacity-0');
-                ui.modalContent.classList.remove('scale-95');
-                ui.pinInput.focus();
-            }, 10);
-        }
-
-        function closeModal() {
-            ui.modal.classList.add('opacity-0');
-            ui.modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                ui.modal.classList.add('hidden');
-                ui.modalContent.classList.remove('animate-shake');
-            }, 200);
-        }
-
-        function handlePinSubmit() {
-            if (ui.pinInput.value === CORRECT_PIN) {
-                closeModal();
-                logPoopEvent();
-            } else {
-                ui.pinError.classList.remove('opacity-0');
-                ui.pinError.classList.add('opacity-100');
-                ui.pinInput.value = '';
-                ui.pinInput.focus();
-                
-                ui.modalContent.classList.remove('animate-shake');
-                void ui.modalContent.offsetWidth;
-                ui.modalContent.classList.add('animate-shake');
-            }
-        }
-
-        // --- Event Listeners ---
-        ui.logBtn.addEventListener('click', openModal);
-        ui.cancelBtn.addEventListener('click', closeModal);
-        ui.submitBtn.addEventListener('click', handlePinSubmit);
-        ui.pinInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handlePinSubmit();
-        });
-
-        ui.modal.addEventListener('click', (e) => {
-            if (e.target === ui.modal) closeModal();
-        });
-
-        // Start App
-        initApp();
-
-    </script>
-</body>
-</html>
+                ui.modalContent.classList.remove('scale-95
  

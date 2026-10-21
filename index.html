@@ -1,0 +1,376 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Did Rayyan Poop Today?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fef3c7;
+            background-image: radial-gradient(#fde68a 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <main class="bg-white/90 backdrop-blur-md rounded-[3rem] p-8 w-full max-w-lg shadow-2xl text-center border-8 border-amber-100 flex flex-col items-center justify-center relative overflow-hidden">
+        
+        <h1 class="text-3xl md:text-5xl font-black text-amber-900 mb-6 drop-shadow-sm leading-tight">
+            Did Rayyan Poop Today?
+        </h1>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-2xl text-amber-600 font-bold animate-pulse my-12">
+            Checking diaper status... 🍼
+        </div>
+
+        <!-- Status Container -->
+        <div id="status-container" class="hidden flex-col items-center w-full">
+            
+            <!-- Yes State -->
+            <div id="state-yes" class="hidden flex-col items-center animate-bounce-in">
+                <div class="text-7xl md:text-8xl font-black text-green-500 tracking-wider mb-2 drop-shadow-md animate-float">
+                    YES!
+                </div>
+                <div class="text-5xl mb-6 flex gap-2">
+                    💩 🎉 💩 🎈 💩
+                </div>
+                <div class="bg-green-100 text-green-800 px-6 py-3 rounded-full font-bold text-xl mb-4 border-2 border-green-300">
+                    What a relief!
+                </div>
+            </div>
+
+            <!-- No State -->
+            <div id="state-no" class="hidden flex-col items-center w-full">
+                <div class="text-7xl md:text-8xl font-black text-orange-500 tracking-wider mb-2 drop-shadow-md">
+                    NO.
+                </div>
+                <div class="text-5xl mb-6">
+                    🫣 💨 ⏳
+                </div>
+                
+                <div class="bg-orange-50 w-full rounded-2xl p-4 border-2 border-orange-200 mb-6">
+                    <p class="text-orange-900 font-bold mb-2 uppercase tracking-wider text-sm">Time since last poop:</p>
+                    <div id="counter" class="text-2xl md:text-3xl font-black text-orange-600 flex justify-center gap-2 flex-wrap">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Action Button -->
+        <button id="log-btn" class="mt-8 group relative w-full bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-black text-2xl md:text-3xl py-5 px-8 rounded-full shadow-[0_6px_0_#92400e,0_15px_20px_rgba(0,0,0,0.2)] active:shadow-[0_0px_0_#92400e,0_0px_0_rgba(0,0,0,0.2)] active:translate-y-[6px] transition-all duration-150 flex items-center justify-center gap-3">
+            <span>Log a Poop!</span>
+            <span class="text-3xl group-hover:animate-spin">💩</span>
+        </button>
+    </main>
+
+    <!-- PIN Modal -->
+    <div id="pin-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-200" id="pin-modal-content">
+            <div class="text-4xl text-center mb-2">🛡️</div>
+            <h2 class="text-3xl font-black text-amber-900 mb-2 text-center">Parent Check!</h2>
+            <p class="text-slate-500 text-center font-bold mb-6 text-lg">Enter PIN to log a poop.</p>
+            
+            <input type="password" id="pin-input" pattern="[0-9]*" inputmode="numeric" maxlength="4" class="w-full text-center text-5xl tracking-[0.5em] font-black text-amber-900 bg-amber-50 border-4 border-amber-200 rounded-2xl py-4 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors mb-2" placeholder="••••">
+            
+            <div id="pin-error" class="text-red-500 text-center font-bold min-h-[24px] mb-6 opacity-0 transition-opacity">
+                Incorrect PIN! Parents only!
+            </div>
+            
+            <div class="flex gap-4">
+                <button id="cancel-pin-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 px-4 rounded-xl text-xl transition-colors">Cancel</button>
+                <button id="submit-pin-btn" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-4 rounded-xl text-xl shadow-lg transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic & Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment variables provided by the platform
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rayyan-poop-tracker';
+        let firebaseConfig = {   apiKey: "AIzaSyDuygTSi_VqKDsMTg4yoe4Tme6KZ_Qbk5c",
+  authDomain: "rayyan-tracker.firebaseapp.com",
+  projectId: "rayyan-tracker",
+  storageBucket: "rayyan-tracker.firebasestorage.app",
+  messagingSenderId: "364542152137",
+  appId: "1:364542152137:web:576de3fb0860bd2e102c18" }; // Fallback
+        if (typeof __firebase_config !== 'undefined') {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) {}
+        }
+
+        // --- State & Constants ---
+        const CORRECT_PIN = '2026';
+        let lastPoopTimestamp = 0; // ms since epoch
+        let timerInterval = null;
+        let useLocalFallback = false; // Used if Firebase fails to load/config is invalid
+
+        // --- UI Elements ---
+        const ui = {
+            loading: document.getElementById('loading'),
+            statusContainer: document.getElementById('status-container'),
+            stateYes: document.getElementById('state-yes'),
+            stateNo: document.getElementById('state-no'),
+            counter: document.getElementById('counter'),
+            logBtn: document.getElementById('log-btn'),
+            modal: document.getElementById('pin-modal'),
+            modalContent: document.getElementById('pin-modal-content'),
+            pinInput: document.getElementById('pin-input'),
+            submitBtn: document.getElementById('submit-pin-btn'),
+            cancelBtn: document.getElementById('cancel-pin-btn'),
+            pinError: document.getElementById('pin-error')
+        };
+
+        // --- Firebase Init ---
+        let db, auth;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (error) {
+            console.error("Firebase init failed, falling back to local state.", error);
+            useLocalFallback = true;
+        }
+
+        async function initApp() {
+            if (useLocalFallback) {
+                lastPoopTimestamp = Date.now() - (1000 * 60 * 60 * 25); // Start with a mock "No" state (25 hrs ago)
+                updateUI();
+                return;
+            }
+
+            try {
+                // Authenticate before query (Rule 3)
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Listen to the public document tracking the latest poop (Rule 1)
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'poopTracker', 'latest');
+                
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        lastPoopTimestamp = docSnap.data().timestamp;
+                    } else {
+                        lastPoopTimestamp = 0; // Never logged
+                    }
+                    updateUI();
+                }, (error) => {
+                    console.error("Error listening to Firestore:", error);
+                    useLocalFallback = true;
+                    updateUI();
+                });
+
+            } catch (error) {
+                console.error("Auth/Firestore setup failed:", error);
+                useLocalFallback = true;
+                updateUI();
+            }
+        }
+
+        // --- Display Logic ---
+        function updateUI() {
+            ui.loading.classList.add('hidden');
+            ui.statusContainer.classList.remove('hidden');
+            ui.statusContainer.classList.add('flex');
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            if (!lastPoopTimestamp) {
+                showNoState();
+                ui.counter.innerHTML = "<span>Never logged yet!</span>";
+                return;
+            }
+
+            const now = new Date();
+            const lastPoopDate = new Date(lastPoopTimestamp);
+
+            // Check if same calendar day
+            const isToday = now.getFullYear() === lastPoopDate.getFullYear() &&
+                            now.getMonth() === lastPoopDate.getMonth() &&
+                            now.getDate() === lastPoopDate.getDate();
+
+            if (isToday) {
+                showYesState();
+            } else {
+                showNoState();
+                updateCounter(); // Initial tick
+                timerInterval = setInterval(updateCounter, 60000); // Update every minute
+            }
+        }
+
+        function showYesState() {
+            ui.stateNo.classList.add('hidden');
+            ui.stateNo.classList.remove('flex');
+            ui.stateYes.classList.remove('hidden');
+            ui.stateYes.classList.add('flex');
+        }
+
+        function showNoState() {
+            ui.stateYes.classList.add('hidden');
+            ui.stateYes.classList.remove('flex');
+            ui.stateNo.classList.remove('hidden');
+            ui.stateNo.classList.add('flex');
+        }
+
+        function updateCounter() {
+            const diff = Date.now() - lastPoopTimestamp;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((diff / 1000 / 60) % 60);
+
+            let html = '';
+            if (days > 0) html += `<span>${days}d</span>`;
+            if (hours > 0 || days > 0) html += `<span>${hours}h</span>`;
+            html += `<span>${mins}m</span>`;
+
+            ui.counter.innerHTML = html;
+        }
+
+        // --- Confetti Celebration ---
+        function firePoopConfetti() {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                // Left edge
+                confetti({
+                    particleCount: 7,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F'] // Brown and Gold tones
+                });
+                // Right edge
+                confetti({
+                    particleCount: 7,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#8B4513', '#A0522D', '#D2691E', '#FFD700', '#CD853F']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // --- Database Update ---
+        async function logPoopEvent() {
+            firePoopConfetti();
+            
+            if (useLocalFallback) {
+                lastPoopTimestamp = Date.now();
+                updateUI();
+                return;
+            }
+
+            try {
+                if (!auth.currentUser) return; // Guard clause
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'poopTracker', 'latest');
+                await setDoc(docRef, { timestamp: Date.now() });
+                // Note: The onSnapshot listener will catch this and trigger updateUI automatically
+            } catch (error) {
+                console.error("Failed to save to database:", error);
+                alert("Oh no! Couldn't save the poop log. Check your connection.");
+            }
+        }
+
+        // --- Modal & PIN Logic ---
+        function openModal() {
+            ui.pinInput.value = '';
+            ui.pinError.classList.remove('opacity-100');
+            ui.pinError.classList.add('opacity-0');
+            ui.modal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                ui.modal.classList.remove('opacity-0');
+                ui.modalContent.classList.remove('scale-95');
+                ui.pinInput.focus();
+            }, 10);
+        }
+
+        function closeModal() {
+            ui.modal.classList.add('opacity-0');
+            ui.modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                ui.modal.classList.add('hidden');
+                ui.modalContent.classList.remove('animate-shake');
+            }, 200);
+        }
+
+        function handlePinSubmit() {
+            if (ui.pinInput.value === CORRECT_PIN) {
+                closeModal();
+                logPoopEvent();
+            } else {
+                // Show Error & Shake
+                ui.pinError.classList.remove('opacity-0');
+                ui.pinError.classList.add('opacity-100');
+                ui.pinInput.value = '';
+                ui.pinInput.focus();
+                
+                // Retrigger animation
+                ui.modalContent.classList.remove('animate-shake');
+                void ui.modalContent.offsetWidth; // Trigger reflow
+                ui.modalContent.classList.add('animate-shake');
+            }
+        }
+
+        // --- Event Listeners ---
+        ui.logBtn.addEventListener('click', openModal);
+        ui.cancelBtn.addEventListener('click', closeModal);
+        ui.submitBtn.addEventListener('click', handlePinSubmit);
+        ui.pinInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handlePinSubmit();
+        });
+
+        // Close modal on clicking outside
+        ui.modal.addEventListener('click', (e) => {
+            if (e.target === ui.modal) closeModal();
+        });
+
+        // Start App
+        initApp();
+
+    </script>
+</body>
+</html>
+```
